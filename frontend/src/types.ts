@@ -5,10 +5,18 @@ export interface Document {
   uploaded_at: string;
 }
 
+export interface SourceReference {
+  document_id?: number;
+  filename: string;
+  text: string;
+  chunk_index?: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: SourceReference[];
 }
 

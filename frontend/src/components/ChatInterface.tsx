@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../api/client';
+import SourceReferences from './SourceReferences';
 import type { ChatMessage } from '../types';
 
 const ChatInterface = () => {
@@ -31,12 +32,13 @@ const ChatInterface = () => {
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(inputValue);
+      const { response, sources } = await sendChatMessage(inputValue);
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response,
         timestamp: new Date(),
+        sources: sources,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -80,14 +82,19 @@ const ChatInterface = () => {
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-5 py-3 ${
-                  message.role === 'user'
-                    ? 'bg-fountain-accent/20 border border-fountain-accent/30 text-white'
-                    : 'bg-fountain-primary/60 backdrop-blur-sm text-white border border-white/10'
-                }`}
-              >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              <div className="max-w-[80%]">
+                <div
+                  className={`rounded-2xl px-5 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-fountain-accent/20 border border-fountain-accent/30 text-white'
+                      : 'bg-fountain-primary/60 backdrop-blur-sm text-white border border-white/10'
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                </div>
+                {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                  <SourceReferences sources={message.sources} />
+                )}
               </div>
             </div>
           ))

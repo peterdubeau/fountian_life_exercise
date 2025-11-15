@@ -71,7 +71,7 @@ async def upload_document(
 
     # Add to vector store
     try:
-        await add_documents_to_vector_store(text_content, db_document.id)
+        await add_documents_to_vector_store(text_content, db_document.id, db_document.filename)
     except Exception as e:
         # Log error but don't fail the upload
         print(f"Error adding to vector store: {str(e)}")

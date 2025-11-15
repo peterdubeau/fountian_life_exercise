@@ -23,6 +23,14 @@ class ChatMessage(BaseModel):
     message: str
 
 
+class SourceReference(BaseModel):
+    document_id: Optional[int] = None
+    filename: str
+    text: str
+    chunk_index: Optional[int] = None
+
+
 class ChatResponse(BaseModel):
     response: str
+    sources: list[SourceReference] = []
 

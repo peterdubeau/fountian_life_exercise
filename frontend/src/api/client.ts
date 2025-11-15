@@ -1,4 +1,4 @@
-import type { Document, ChatMessage } from '../types';
+import type { Document, ChatMessage, SourceReference } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -37,7 +37,7 @@ export const deleteDocument = async (documentId: number): Promise<void> => {
   }
 };
 
-export const sendChatMessage = async (message: string): Promise<string> => {
+export const sendChatMessage = async (message: string): Promise<{ response: string; sources: SourceReference[] }> => {
   const response = await fetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',
     headers: {
@@ -51,6 +51,6 @@ export const sendChatMessage = async (message: string): Promise<string> => {
   }
 
   const data = await response.json();
-  return data.response;
+  return { response: data.response, sources: data.sources || [] };
 };
 
