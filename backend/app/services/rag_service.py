@@ -6,7 +6,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 
@@ -60,11 +59,78 @@ async def add_documents_to_vector_store(text: str, document_id: int, filename: s
 
 
 async def remove_document_from_vector_store(document_id: int) -> None:
-    """Remove a document from the vector store."""
-    # Note: FAISS doesn't support direct deletion, so we'll need to rebuild
-    # For a POC, we can skip this or rebuild the entire store
-    # This is a limitation of FAISS - in production, use a vector DB that supports deletion
-    pass
+    """Remove a document from the vector store by rebuilding without its chunks."""
+    vector_store_index = VECTOR_STORE_PATH / "faiss_index.faiss"
+    
+    if not vector_store_index.exists():
+        return  # Nothing to remove
+    
+    # Load existing vector store
+    existing_store = FAISS.load_local(
+        str(VECTOR_STORE_PATH),
+        EMBEDDINGS,
+        index_name="faiss_index",
+        allow_dangerous_deserialization=True
+    )
+    
+    # Get all documents from the store by accessing the docstore
+    # Note: This uses a private attribute, but it's the most reliable way for FAISS
+    all_docs = existing_store.docstore._dict
+    
+    # Filter out chunks belonging to the deleted document
+    filtered_texts = []
+    filtered_metadatas = []
+    
+    for doc_id, doc in all_docs.items():
+        # Get metadata - handle both Document objects and dicts
+        if hasattr(doc, 'metadata'):
+            metadata = doc.metadata or {}
+        elif isinstance(doc, dict):
+            metadata = doc.get('metadata', {})
+        else:
+            metadata = {}
+        
+        doc_document_id = metadata.get("document_id")
+        
+        # Keep only chunks that don't belong to the deleted document
+        # Also keep chunks without document_id (legacy documents)
+        if doc_document_id is None or doc_document_id != document_id:
+            # Get page_content - handle both Document objects and dicts
+            if hasattr(doc, 'page_content'):
+                text = doc.page_content
+            elif isinstance(doc, dict):
+                text = doc.get('page_content', '')
+            else:
+                continue  # Skip if we can't extract text
+            
+            filtered_texts.append(text)
+            filtered_metadatas.append(metadata)
+    
+    # If no documents remain, delete the vector store files
+    if not filtered_texts:
+        if vector_store_index.exists():
+            vector_store_index.unlink()
+        pkl_file = VECTOR_STORE_PATH / "faiss_index.pkl"
+        if pkl_file.exists():
+            pkl_file.unlink()
+        return
+    
+    # Rebuild vector store with remaining documents
+    new_vector_store = FAISS.from_texts(filtered_texts, EMBEDDINGS, metadatas=filtered_metadatas)
+    
+    # Save the rebuilt vector store
+    new_vector_store.save_local(str(VECTOR_STORE_PATH), "faiss_index")
+
+
+async def clear_vector_store() -> None:
+    """Clear the entire vector store by deleting all files."""
+    vector_store_index = VECTOR_STORE_PATH / "faiss_index.faiss"
+    pkl_file = VECTOR_STORE_PATH / "faiss_index.pkl"
+    
+    if vector_store_index.exists():
+        vector_store_index.unlink()
+    if pkl_file.exists():
+        pkl_file.unlink()
 
 
 async def query_vector_store(question: str, db: Optional[AsyncSession] = None) -> tuple[str, list[dict]]:
@@ -92,8 +158,6 @@ async def query_vector_store(question: str, db: Optional[AsyncSession] = None) -
         ("system", system_prompt),
         ("human", "Context: {context}\n\nQuestion: {question}")
     ])
-
-    retriever = vector_store.as_retriever(search_kwargs={"k": 4})
     
     # Retrieve documents with metadata using similarity_search_with_score to get metadata
     # Using similarity_search_with_score instead of retriever.invoke to ensure we get metadata

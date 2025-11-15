@@ -28,6 +28,7 @@ class SourceReference(BaseModel):
     filename: str
     text: str
     chunk_index: Optional[int] = None
+    score: Optional[float] = None
 
 
 class ChatResponse(BaseModel):

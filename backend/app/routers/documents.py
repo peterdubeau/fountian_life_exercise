@@ -10,7 +10,7 @@ from datetime import datetime
 from app.db import get_db, Document
 from app.models.schemas import DocumentResponse
 from app.services.document_processor import process_document
-from app.services.rag_service import add_documents_to_vector_store
+from app.services.rag_service import add_documents_to_vector_store, remove_document_from_vector_store, clear_vector_store
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -117,9 +117,43 @@ async def delete_document(
     if file_path.exists():
         file_path.unlink()
 
+    # Store document_id before deletion
+    doc_id = document.id
+
     # Delete from database
     await db.delete(document)
     await db.commit()
 
+    # Remove from vector store
+    try:
+        await remove_document_from_vector_store(doc_id)
+    except Exception as e:
+        # Log error but don't fail the deletion
+        print(f"Error removing from vector store: {str(e)}")
+
     return {"message": "Document deleted successfully"}
+
+
+@router.delete("/clear-all")
+async def clear_all_documents(db: AsyncSession = Depends(get_db)):
+    """Clear all documents, files, and vector store."""
+    # Delete all files
+    for file_path in UPLOAD_DIR.iterdir():
+        if file_path.is_file():
+            file_path.unlink()
+    
+    # Delete all database records
+    result = await db.execute(select(Document))
+    documents = result.scalars().all()
+    for doc in documents:
+        await db.delete(doc)
+    await db.commit()
+    
+    # Clear vector store
+    try:
+        await clear_vector_store()
+    except Exception as e:
+        print(f"Error clearing vector store: {str(e)}")
+    
+    return {"message": "All documents, files, and vector store cleared successfully"}
 

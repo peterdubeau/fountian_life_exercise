@@ -37,6 +37,16 @@ export const deleteDocument = async (documentId: number): Promise<void> => {
   }
 };
 
+export const clearAllDocuments = async (): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/documents/clear-all`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to clear all documents');
+  }
+};
+
 export const sendChatMessage = async (message: string): Promise<{ response: string; sources: SourceReference[] }> => {
   const response = await fetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',

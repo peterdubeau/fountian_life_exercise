@@ -1,4 +1,4 @@
-import { deleteDocument } from '../api/client';
+import { deleteDocument, clearAllDocuments } from '../api/client';
 import type { Document } from '../types';
 
 interface DocumentListProps {
@@ -30,6 +30,26 @@ const DocumentList = ({ documents, onDeleteSuccess }: DocumentListProps) => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL documents, files, and clear the vector store? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await clearAllDocuments();
+      onDeleteSuccess();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to clear all documents');
+    }
+  };
+
+  const handleClearAllKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClearAll();
+    }
+  };
+
   if (documents.length === 0) {
     return (
       <div className="mb-6 p-6 bg-fountain-primary/50 rounded-xl border border-white/10">
@@ -40,6 +60,19 @@ const DocumentList = ({ documents, onDeleteSuccess }: DocumentListProps) => {
 
   return (
     <div className="mb-6">
+      {documents.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={handleClearAll}
+            onKeyDown={handleClearAllKeyDown}
+            className="w-full px-4 py-2 text-sm font-medium text-white/80 hover:text-white border border-red-500/50 hover:border-red-500 hover:bg-red-500/20 rounded-lg transition-all duration-200"
+            aria-label="Clear all documents"
+            tabIndex={0}
+          >
+            Clear All Documents
+          </button>
+        </div>
+      )}
       <ul className="space-y-3">
         {documents.map((doc) => (
           <li
