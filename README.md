@@ -1,6 +1,6 @@
 # Intro
 
-Thanks for checking this out, and I appreciate the opportunity to work on it. Under different circumstances I would have explored agents nad tool around document research, research validation, source comparison, and data visualization. If you put in an OpenAI api key, you can test it locally. I was able to upload and ask questions about 700 page PDF with pretty good results. 
+Thanks for checking this out, and I appreciate the opportunity to work on it. Under different circumstances I would have explored agents and tools around document research, research validation, source comparison, and data visualization. If you put in an OpenAI api key, you can test it locally. I was able to upload and ask questions about 700 page PDF with pretty good results. 
 
 ## NotebookLM POC
 
