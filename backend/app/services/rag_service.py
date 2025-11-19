@@ -8,12 +8,14 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
 EMBEDDINGS = OpenAIEmbeddings()
 LLM = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
-VECTOR_STORE_PATH = Path("./vector_store")
+# Use absolute path to ensure it works regardless of working directory
+VECTOR_STORE_PATH = Path(__file__).parent.parent.parent / "vector_store"
 VECTOR_STORE_PATH.mkdir(exist_ok=True)
 
 
@@ -127,10 +129,27 @@ async def clear_vector_store() -> None:
     vector_store_index = VECTOR_STORE_PATH / "faiss_index.faiss"
     pkl_file = VECTOR_STORE_PATH / "faiss_index.pkl"
     
-    if vector_store_index.exists():
-        vector_store_index.unlink()
-    if pkl_file.exists():
-        pkl_file.unlink()
+    print(f"Attempting to clear vector store at: {VECTOR_STORE_PATH.absolute()}")
+    print(f"Index file exists: {vector_store_index.exists()}")
+    print(f"PKL file exists: {pkl_file.exists()}")
+    
+    try:
+        if vector_store_index.exists():
+            vector_store_index.unlink()
+            print(f"Successfully deleted vector store index: {vector_store_index}")
+        else:
+            print(f"Vector store index not found: {vector_store_index}")
+        
+        if pkl_file.exists():
+            pkl_file.unlink()
+            print(f"Successfully deleted vector store pkl: {pkl_file}")
+        else:
+            print(f"Vector store pkl not found: {pkl_file}")
+    except Exception as e:
+        print(f"Error deleting vector store files: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 async def query_vector_store(question: str, db: Optional[AsyncSession] = None) -> tuple[str, list[dict]]:
